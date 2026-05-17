@@ -284,8 +284,8 @@ This project was built as Assignment 3 for a Data Engineering course. It demonst
 ## 👤 Author
 
 **Zeeshan Zahid**
-- LinkedIn: [your linkedin URL]
-- GitHub: [your github URL]
+- LinkedIn: [(https://www.linkedin.com/in/zeeshan-zahid-a81b20333/)]
+- GitHub: [(https://github.com/Zeeshan12m/job-market-analytics-pipeline/)]
 
 ---
 
