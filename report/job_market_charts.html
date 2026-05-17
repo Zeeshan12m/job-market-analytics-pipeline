@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Market Analytics Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:       #0d0f14;
+    --surface:  #161920;
+    --border:   #252830;
+    --accent1:  #4f8ef7;
+    --accent2:  #f7c34f;
+    --accent3:  #4ff7a8;
+    --accent4:  #f74f7c;
+    --accent5:  #a84ff7;
+    --text:     #e8eaf0;
+    --muted:    #6b7080;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    padding: 40px 32px;
+    min-height: 100vh;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    color: var(--accent1);
+    margin-bottom: 8px;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* KPI Row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .kpi:nth-child(1)::before { background: var(--accent1); }
+  .kpi:nth-child(2)::before { background: var(--accent2); }
+  .kpi:nth-child(3)::before { background: var(--accent3); }
+  .kpi:nth-child(4)::before { background: var(--accent4); }
+
+  .kpi-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi:nth-child(1) .kpi-value { color: var(--accent1); }
+  .kpi:nth-child(2) .kpi-value { color: var(--accent2); }
+  .kpi:nth-child(3) .kpi-value { color: var(--accent3); }
+  .kpi:nth-child(4) .kpi-value { color: var(--accent4); }
+
+  .kpi-sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  /* Charts Grid */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .grid-full {
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .card h2 {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card h2 span {
+    background: var(--border);
+    color: var(--accent1);
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  canvas { max-height: 280px; }
+
+  /* Pipeline Quality Table */
+  .quality-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .quality-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .quality-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .quality-table tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .badge-good  { background: rgba(79,247,168,0.15); color: var(--accent3); }
+  .badge-warn  { background: rgba(247,195,79,0.15);  color: var(--accent2); }
+  .badge-bad   { background: rgba(247,79,124,0.15);  color: var(--accent4); }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-family: 'Space Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Job Market Analytics Report</h1>
+  <p>AI / ML / Data Jobs Pipeline — Scraped May 2026</p>
+</header>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="kpi-label">Total AI/ML Jobs</div>
+    <div class="kpi-value">45</div>
+    <div class="kpi-sub">from 1,146 raw jobs</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Avg Salary USD</div>
+    <div class="kpi-value">$232K</div>
+    <div class="kpi-sub">based on 2 jobs only</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Remote Jobs</div>
+    <div class="kpi-value">24.4%</div>
+    <div class="kpi-sub">11 of 45 jobs</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Top Location</div>
+    <div class="kpi-value">Berlin</div>
+    <div class="kpi-sub">12 jobs (26.7%)</div>
+  </div>
+</div>
+
+<!-- Row 1: Source Distribution + Remote Ratio -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Q2. Jobs by Source <span>Bar</span></h2>
+    <canvas id="sourceChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Q4. Remote vs On-site <span>Donut</span></h2>
+    <canvas id="remoteChart"></canvas>
+  </div>
+</div>
+
+<!-- Row 2: Filter Rate + Job Categories -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Q3. Filter Rate per Source <span>Grouped Bar</span></h2>
+    <canvas id="filterChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Q12. Job Category Distribution <span>Donut</span></h2>
+    <canvas id="categoryChart"></canvas>
+  </div>
+</div>
+
+<!-- Row 3: Top Skills -->
+<div class="grid-full">
+  <div class="card">
+    <h2>Q10. Top 10 Most In-Demand Skills <span>Horizontal Bar</span></h2>
+    <canvas id="skillsChart" style="max-height:320px;"></canvas>
+  </div>
+</div>
+
+<!-- Row 4: Top Companies + Locations -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Q11. Top Companies <span>Bar</span></h2>
+    <canvas id="companiesChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Q14. Top Locations <span>Bar</span></h2>
+    <canvas id="locationsChart"></canvas>
+  </div>
+</div>
+
+<!-- Row 5: Salary by Category + Job Types -->
+<div class="grid-2">
+  <div class="card">
+    <h2>Q8. Avg Salary by Category <span>Bar</span></h2>
+    <canvas id="salaryChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Q13. Job Types Distribution <span>Bar</span></h2>
+    <canvas id="jobTypeChart"></canvas>
+  </div>
+</div>
+
+<!-- Row 6: Pipeline Quality Table -->
+<div class="grid-full">
+  <div class="card">
+    <h2>Q15. Pipeline Quality Metrics <span>Table</span></h2>
+    <table class="quality-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Value</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Total raw jobs collected</td>
+          <td>1,146</td>
+          <td><span class="badge badge-good">Good</span></td>
+          <td>4 sources successfully scraped</td>
+        </tr>
+        <tr>
+          <td>Duplicates removed</td>
+          <td>114 (9.9%)</td>
+          <td><span class="badge badge-good">Good</span></td>
+          <td>Deduplication by job_url and title+company</td>
+        </tr>
+        <tr>
+          <td>After AI/ML filter</td>
+          <td>45 (3.9%)</td>
+          <td><span class="badge badge-warn">Low</span></td>
+          <td>Small sample — Arbeitnow is Europe-focused</td>
+        </tr>
+        <tr>
+          <td>Missing salary data</td>
+          <td>95.6%</td>
+          <td><span class="badge badge-bad">High</span></td>
+          <td>APIs don't provide structured salary fields</td>
+        </tr>
+        <tr>
+          <td>Missing experience data</td>
+          <td>100%</td>
+          <td><span class="badge badge-bad">High</span></td>
+          <td>Regex extraction failed — inconsistent formats</td>
+        </tr>
+        <tr>
+          <td>Active data sources</td>
+          <td>3 of 4</td>
+          <td><span class="badge badge-warn">Partial</span></td>
+          <td>Himalayas returned 0 AI/ML jobs this run</td>
+        </tr>
+        <tr>
+          <td>Validation checks passed</td>
+          <td>26 of 26</td>
+          <td><span class="badge badge-good">Perfect</span></td>
+          <td>All mandatory columns and schema checks passed</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  Generated by Job Market Analytics Pipeline &nbsp;|&nbsp; Apache Airflow + KNIME + n8n
+</footer>
+
+<script>
+const COLORS = {
+  blue:   '#4f8ef7',
+  yellow: '#f7c34f',
+  green:  '#4ff7a8',
+  pink:   '#f74f7c',
+  purple: '#a84ff7',
+  orange: '#f7824f',
+  teal:   '#4ff7e8',
+  red:    '#f75a4f',
+};
+
+const GRID = { color: 'rgba(255,255,255,0.05)' };
+const TICK = { color: '#6b7080', font: { family: 'DM Sans', size: 11 } };
+const DEF  = { responsive: true, maintainAspectRatio: true };
+
+// Q2 — Jobs by Source
+new Chart(document.getElementById('sourceChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Arbeitnow', 'RemoteJobs.org', 'RemoteOK', 'Himalayas'],
+    datasets: [{
+      label: 'Jobs After Filter',
+      data: [38, 4, 3, 0],
+      backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow, COLORS.muted],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    ...DEF,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: GRID, ticks: TICK },
+      y: { grid: GRID, ticks: TICK, beginAtZero: true }
+    }
+  }
+});
+
+// Q4 — Remote vs On-site
+new Chart(document.getElementById('remoteChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['On-site', 'Remote', 'Hybrid'],
+    datasets: [{
+      data: [34, 11, 0],
+      backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow],
+      borderWidth: 0,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    ...DEF,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#e8eaf0', font: { family: 'DM Sans', size: 11 }, padding: 16 }
+      }
+    }
+  }
+});
+
+// Q3 — Filter Rate per Source
+new Chart(document.getElementById('filterChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Arbeitnow', 'RemoteOK', 'Himalayas', 'RemoteJobs.org'],
+    datasets: [
+      {
+        label: 'Before Filter',
+        data: [1000, 99, 17, 30],
+        backgroundColor: 'rgba(79,142,247,0.3)',
+        borderRadius: 4,
+      },
+      {
+        label: 'After Filter',
+        data: [38, 3, 0, 4],
+        backgroundColor: COLORS.blue,
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    ...DEF,
+    plugins: {
+      legend: {
+        labels: { color: '#e8eaf0', font: { family: 'DM Sans', size: 11 } }
+      }
+    },
+    scales: {
+      x: { grid: GRID, ticks: TICK },
+      y: { grid: GRID, ticks: TICK, beginAtZero: true }
+    }
+  }
+});
+
+// Q12 — Job Categories
+new Chart(document.getElementById('categoryChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Other', 'Data Engineering', 'Data Science'],
+    datasets: [{
+      data: [37, 4, 1],
+      backgroundColor: [COLORS.purple, COLORS.blue, COLORS.green],
+      borderWidth: 0,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    ...DEF,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#e8eaf0', font: { family: 'DM Sans', size: 11 }, padding: 16 }
+      }
+    }
+  }
+});
+
+// Q10 — Top Skills
+new Chart(document.getElementById('skillsChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Docker','Excel','SQL','Kubernetes','Python','PostgreSQL','Data Science','AWS','MySQL','Redis'],
+    datasets: [{
+      label: 'Jobs mentioning skill',
+      data: [4, 4, 3, 3, 3, 2, 2, 2, 2, 2],
+      backgroundColor: [
+        COLORS.blue, COLORS.yellow, COLORS.green, COLORS.pink, COLORS.purple,
+        COLORS.orange, COLORS.teal, COLORS.blue, COLORS.yellow, COLORS.green
+      ],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    ...DEF,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: GRID, ticks: { ...TICK, stepSize: 1 }, beginAtZero: true },
+      y: { grid: { display: false }, ticks: TICK }
+    }
+  }
+});
+
+// Q11 — Top Companies
+new Chart(document.getElementById('companiesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['BRÜGGEN ENG.', 'Flix', 'Hoffmann Rec.', 'Start To Finish', 'HOPn', 'CEF AI', 'Others'],
+    datasets: [{
+      data: [3, 3, 2, 2, 1, 1, 1],
+      backgroundColor: COLORS.yellow,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    ...DEF,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: GRID, ticks: { ...TICK, stepSize: 1 }, beginAtZero: true },
+      y: { grid: { display: false }, ticks: TICK }
+    }
+  }
+});
+
+// Q14 — Top Locations
+new Chart(document.getElementById('locationsChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Berlin*', 'Hamburg', 'Frankfurt', 'Munich', 'Mainz', 'Aachen', 'Koblenz', 'Cologne'],
+    datasets: [{
+      data: [12, 4, 4, 3, 2, 1, 1, 1],
+      backgroundColor: COLORS.green,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    ...DEF,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterLabel: (ctx) => ctx.label === 'Berlin*' ? '* Combined Berlin entries' : ''
+        }
+      }
+    },
+    scales: {
+      x: { grid: GRID, ticks: TICK },
+      y: { grid: GRID, ticks: TICK, beginAtZero: true }
+    }
+  }
+});
+
+// Q8 — Avg Salary by Category
+new Chart(document.getElementById('salaryChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Data Engineering', 'Other'],
+    datasets: [{
+      label: 'Avg Salary (USD)',
+      data: [224000, 240800],
+      backgroundColor: [COLORS.blue, COLORS.purple],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    ...DEF,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `$${ctx.raw.toLocaleString()} (1 job)`
+        }
+      }
+    },
+    scales: {
+      x: { grid: GRID, ticks: TICK },
+      y: {
+        grid: GRID,
+        ticks: {
+          ...TICK,
+          callback: v => '$' + (v/1000) + 'K'
+        },
+        beginAtZero: false,
+        min: 200000
+      }
+    }
+  }
+});
+
+// Q13 — Job Types
+new Chart(document.getElementById('jobTypeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Full-time', 'Team Lead', 'Professional/Exp', 'Experienced(DE)', 'Full-time Perm', 'Traineeship', 'Contract', 'Internship'],
+    datasets: [{
+      data: [4, 4, 4, 3, 2, 2, 1, 1],
+      backgroundColor: COLORS.pink,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    ...DEF,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: GRID, ticks: { ...TICK, stepSize: 1 }, beginAtZero: true },
+      y: { grid: { display: false }, ticks: { ...TICK, font: { size: 10 } } }
+    }
+  }
+});
+</script>
+</body>
+</html>
